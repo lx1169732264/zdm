@@ -1,0 +1,46 @@
+name: zdm_crawler
+
+on:
+  schedule:
+    - cron: "0/20 * * * *"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 8
+      uses: actions/setup-java@v3
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+        cache: maven
+    - name: Build with Maven
+      run: |
+        mvn package
+        cp ./target/zdm-0.0.1.jar ./zdm.jar
+    - name: main logic
+      env:
+        minVoted: 18
+        minComments: 2
+        MIN_PUSH_SIZE: 20
+        # 邮箱的smtp服务器地址
+        emailHost: smtp.qq.com
+        emailAccount: ${{secrets.emailAccount}}
+        emailPassword: ${{secrets.emailPassword}}
+      run: |
+        java -jar zdm.jar
+        git add pushed.txt
+        git add unpushed.txt
+    # push代码保留本次的下载结果
+    - name: commit & push
+      uses: actions-go/push@master
+      with:
+        # 提交代码时配置的git邮箱
+        author-email: '1169732264@qq.com'
+        # 提交代码时配置的提交人姓名
+        author-name: 'lx'
+        commit-message: 'update pushed and unpushed articles'
+        remote: origin
+        token: ${{ secrets.GIT_TOKEN }}
