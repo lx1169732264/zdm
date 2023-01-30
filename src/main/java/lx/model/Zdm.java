@@ -15,7 +15,7 @@ import lombok.experimental.FieldDefaults;
 public class Zdm implements Crawlable {
 
     @JSONField(name = "article_id")
-    Long articleId;
+    String articleId;
 
     @JSONField(name = "article_title")
     String title;
@@ -32,6 +32,8 @@ public class Zdm implements Crawlable {
 
     @JSONField(name = "article_comment")
     String comments;
+    @JSONField(name = "article_mall")
+    String articleMall;
 
     Boolean pushed;
 
@@ -42,6 +44,7 @@ public class Zdm implements Crawlable {
                 "<td>" + title + "</td>" +
                 "<td>" + price + "</td>" +
                 "<td>" + voted + "/" + comments + "</td>" +
+                "<td>" + articleMall + "</td>" +
                 "<td>" + "<a href='" + url + "'>详情</a>" + "</td>" +
                 "</tr>";
     }

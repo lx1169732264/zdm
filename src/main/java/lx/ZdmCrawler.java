@@ -5,7 +5,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -28,7 +30,6 @@ import lx.model.Zdm;
 import lx.utils.StreamUtils;
 import lx.utils.Utils;
 
-import static lx.utils.Const.ZDM_TH;
 import static lx.utils.Const.ZDM_URL;
 
 public class ZdmCrawler {
@@ -52,13 +53,13 @@ public class ZdmCrawler {
                 zdmPage.addAll(zdmPart);
             }
             return zdmPage;
-        }).flatMap(Collection::stream).collect(Collectors.toSet());
+        }).flatMap(Collection::stream).sorted(Comparator.comparing(Zdm::getComments).reversed()).collect(Collectors.toCollection(LinkedHashSet::new));
 
         HashSet<String> unPushed = Utils.readFile("./unpushed.txt");
         zdms.addAll(StreamUtils.map(unPushed, o -> JSONObject.parseObject(o, Zdm.class)));
-        Utils.clearFile("./unpushed.txt");
 
         HashSet<String> blackWords = Utils.readFile("./black_words.txt");
+        blackWords.remove("");
         HashSet<String> pushedIds = Utils.readFile("./pushed.txt");
 
         zdms = new HashSet<>(StreamUtils.filter(zdms, z ->
@@ -66,15 +67,15 @@ public class ZdmCrawler {
                         && Integer.parseInt(z.getVoted()) > Integer.parseInt(System.getenv("minVoted")) //值的数量
                         && Integer.parseInt(z.getComments()) > Integer.parseInt(System.getenv("minComments")) //评论的数量
                         && !z.getPrice().contains("前") //不是前xxx名的耍猴抢购
-                        && !pushedIds.contains(String.valueOf(z.getArticleId())) //不是已经推送过的
+                        && !pushedIds.contains(z.getArticleId()) //不是已经推送过的
         ));
         zdms.forEach(z -> System.out.println(z.getArticleId() + " | " + z.getTitle()));
 
         if (zdms.size() > Integer.parseInt(System.getenv("MIN_PUSH_SIZE"))) {
-            send(Utils.buildMessage(new ArrayList<>(zdms), ZDM_TH));
-            Utils.write("./pushed.txt", StreamUtils.map(zdms, z -> String.valueOf(z.getArticleId())));
+            send(Utils.buildMessage(new ArrayList<>(zdms)));
+            Utils.write("./pushed.txt", true, StreamUtils.map(zdms, Zdm::getArticleId));
         } else {
-            Utils.write("./unpushed.txt", StreamUtils.map(zdms, JSONObject::toJSONString));
+            Utils.write("./unpushed.txt", false, StreamUtils.map(zdms, JSONObject::toJSONString));
         }
     }
 
