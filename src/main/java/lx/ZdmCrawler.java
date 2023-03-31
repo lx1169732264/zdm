@@ -25,6 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.alibaba.fastjson.JSONObject;
 
+import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.http.HttpUtil;
 import lx.model.Zdm;
 import lx.utils.StreamUtils;
@@ -38,19 +39,24 @@ public class ZdmCrawler {
         Set<Zdm> zdms = ZDM_URL.stream().map(url -> {
             List<Zdm> zdmPage = new ArrayList<>();
             for (int i = 1; i <= 20; i++) {
-                String s = HttpUtil.get(url + i, 10000);
-                List<Zdm> zdmPart = JSONObject.parseArray(s, Zdm.class);
-                zdmPart.forEach(zdm -> {
-                    if (zdm.getComments().endsWith("k")) {
-                        String comments = zdm.getComments().substring(0, zdm.getComments().length() - 2);
-                        zdm.setComments(new BigDecimal(comments).multiply(new BigDecimal(1000)).toString());
-                    }
-                    if (zdm.getVoted().endsWith("k")) {
-                        String voted = zdm.getVoted().substring(0, zdm.getComments().length() - 2);
-                        zdm.setVoted(new BigDecimal(voted).multiply(new BigDecimal(1000)).toString());
-                    }
-                });
-                zdmPage.addAll(zdmPart);
+                try {
+                    String s = HttpUtil.get(url + i, 10000);
+                    List<Zdm> zdmPart = JSONObject.parseArray(s, Zdm.class);
+                    zdmPart.forEach(zdm -> {
+                        if (zdm.getComments().endsWith("k")) {
+                            String comments = zdm.getComments().substring(0, zdm.getComments().length() - 2);
+                            zdm.setComments(new BigDecimal(comments).multiply(new BigDecimal(1000)).toString());
+                        }
+                        if (zdm.getVoted().endsWith("k")) {
+                            String voted = zdm.getVoted().substring(0, zdm.getComments().length() - 2);
+                            zdm.setVoted(new BigDecimal(voted).multiply(new BigDecimal(1000)).toString());
+                        }
+                    });
+                    zdmPage.addAll(zdmPart);
+                } catch (IORuntimeException e) {
+                    //暂时的网络不通,会导致连接超时的异常,等待下次运行即可
+                    System.out.println("pageNumber:" + i + ", connect to zdm server timeout:" + e.getMessage());
+                }
             }
             return zdmPage;
         }).flatMap(Collection::stream).sorted(Comparator.comparing(Zdm::getComments).reversed()).collect(Collectors.toCollection(LinkedHashSet::new));
