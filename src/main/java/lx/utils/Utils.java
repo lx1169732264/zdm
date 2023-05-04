@@ -2,9 +2,11 @@ package lx.utils;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -35,6 +37,7 @@ public class Utils {
                 res.add(lineTxt);
             }
         } catch (Exception e) {
+            e.printStackTrace();
             throw new IllegalArgumentException(path + "文件读取失败");
         }
         return res;
@@ -47,15 +50,29 @@ public class Utils {
      * @param list
      */
     public static void write(String path, boolean append, List<String> list) {
-        try(FileWriter fr =new FileWriter(path, append);
-            BufferedWriter bw = new BufferedWriter(fr)) {
+        File file = new File(path);
+        file.getParentFile().mkdirs();
+        try (FileWriter fr = new FileWriter(file, append);
+             BufferedWriter bw = new BufferedWriter(fr)) {
             for (String s : list) {
                 bw.write(s);
                 bw.newLine();
             }
         } catch (Exception e) {
             e.printStackTrace();
+            throw new IllegalArgumentException(path + "文件写入失败");
         }
+    }
+
+    public static String strNumberFormat(String number) {
+        String v = number.substring(0, number.length() - 2);
+        if (number.endsWith("k")) {
+            return new BigDecimal(v).multiply(new BigDecimal(1000)).toString();
+        }
+        if (number.endsWith("w")) {
+            return new BigDecimal(v).multiply(new BigDecimal(10000)).toString();
+        }
+        return number;
     }
 
 }

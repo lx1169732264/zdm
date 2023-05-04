@@ -1,10 +1,14 @@
 package lx;
 
-import java.math.BigDecimal;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -36,21 +40,16 @@ import static lx.utils.Const.ZDM_URL;
 public class ZdmCrawler {
 
     public static void main(String[] args) {
-        Set<Zdm> zdms = ZDM_URL.stream().map(url -> {
+        Set<Zdm> zdms = ZDM_URL.stream().flatMap(url -> {
             List<Zdm> zdmPage = new ArrayList<>();
-            for (int i = 1; i <= 20; i++) {
+            for (int i = 1; i <= 20; i++) {//爬取前20页数据
                 try {
                     String s = HttpUtil.get(url + i, 10000);
                     List<Zdm> zdmPart = JSONObject.parseArray(s, Zdm.class);
                     zdmPart.forEach(zdm -> {
-                        if (zdm.getComments().endsWith("k")) {
-                            String comments = zdm.getComments().substring(0, zdm.getComments().length() - 2);
-                            zdm.setComments(new BigDecimal(comments).multiply(new BigDecimal(1000)).toString());
-                        }
-                        if (zdm.getVoted().endsWith("k")) {
-                            String voted = zdm.getVoted().substring(0, zdm.getComments().length() - 2);
-                            zdm.setVoted(new BigDecimal(voted).multiply(new BigDecimal(1000)).toString());
-                        }
+                        //将评论和点值数量的值后面会跟着'k','w'这种字符,将它们转换一下方便后面过滤和排序
+                        zdm.setComments(Utils.strNumberFormat(zdm.getComments()));
+                        zdm.setVoted(Utils.strNumberFormat(zdm.getVoted()));
                     });
                     zdmPage.addAll(zdmPart);
                 } catch (IORuntimeException e) {
@@ -58,18 +57,34 @@ public class ZdmCrawler {
                     System.out.println("pageNumber:" + i + ", connect to zdm server timeout:" + e.getMessage());
                 }
             }
-            return zdmPage;
-        }).flatMap(Collection::stream).sorted(Comparator.comparing(Zdm::getComments).reversed()).collect(Collectors.toCollection(LinkedHashSet::new));
+            return zdmPage.stream();
+        }).sorted(Comparator.comparing(Zdm::getComments).reversed())    //评论数量倒序,用LinkedHashSet保证有序
+                .collect(Collectors.toCollection(LinkedHashSet::new));//ZDM_URL这里是按多个时间段纬度的排行榜进行爬取的,会存在相同优惠信息被重复爬取的情况,Zdm类重写了equals(),利用Set去重
 
+        //unpushed.txt记录了上次执行后,未推送的优惠信息
         HashSet<String> unPushed = Utils.readFile("./unpushed.txt");
         zdms.addAll(StreamUtils.map(unPushed, o -> JSONObject.parseObject(o, Zdm.class)));
 
+        //黑词过滤
         HashSet<String> blackWords = Utils.readFile("./black_words.txt");
-        blackWords.remove("");
-        HashSet<String> pushedIds = Utils.readFile("./pushed.txt");
+        blackWords.removeIf(StringUtils::isBlank);
+
+        //已推送的优惠信息id
+        Set<String> pushedIds;
+        try {
+            new File("./logs/").mkdirs();
+            pushedIds = Files.walk(Paths.get("./logs/"), 2)
+                    .filter(p -> !Files.isDirectory(p))
+                    .filter(p -> LocalDate.parse(p.getParent().getFileName().toString()).isAfter(LocalDate.now().minusMonths(1))) //统计一个月内的数据,这也意味着相同的优惠信息,如果一个月后再次登上排行榜,则会被重复推送.不过这种场景比较少,在排行榜上的一般是比较新的内容
+                    .map(Path::toFile)
+                    .flatMap(f -> Utils.readFile(f.getPath()).stream()).collect(Collectors.toSet());
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("读取logs目录失败");
+        }
 
         zdms = new HashSet<>(StreamUtils.filter(zdms, z ->
-                StringUtils.isBlank(StreamUtils.findFirst(blackWords, w -> z.getTitle().contains(w))) //不包含黑词
+                StringUtils.isBlank(StreamUtils.findFirst(blackWords, w -> z.getTitle().contains(w))) //黑词过滤
                         && Integer.parseInt(z.getVoted()) > Integer.parseInt(System.getenv("minVoted")) //值的数量
                         && Integer.parseInt(z.getComments()) > Integer.parseInt(System.getenv("minComments")) //评论的数量
                         && !z.getPrice().contains("前") //不是前xxx名的耍猴抢购
@@ -78,14 +93,14 @@ public class ZdmCrawler {
         zdms.forEach(z -> System.out.println(z.getArticleId() + " | " + z.getTitle()));
 
         if (zdms.size() > Integer.parseInt(System.getenv("MIN_PUSH_SIZE"))) {
-            send(Utils.buildMessage(new ArrayList<>(zdms)));
-            Utils.write("./pushed.txt", true, StreamUtils.map(zdms, Zdm::getArticleId));
+            sendEmail(Utils.buildMessage(new ArrayList<>(zdms)));
+            Utils.write("./logs/" + LocalDate.now() + "/pushed.txt", true, StreamUtils.map(zdms, Zdm::getArticleId));
         } else {
             Utils.write("./unpushed.txt", false, StreamUtils.map(zdms, JSONObject::toJSONString));
         }
     }
 
-    public static void send(String text) {
+    public static void sendEmail(String text) {
         Properties props = new Properties();
         props.setProperty("mail.smtp.host", System.getenv("emailHost"));
         props.setProperty("mail.smtp.auth", "true");
@@ -105,6 +120,7 @@ public class ZdmCrawler {
             Transport.send(message);
         } catch (Exception e) {
             e.printStackTrace();
+            throw new RuntimeException("邮件发送失败");
         }
     }
 
