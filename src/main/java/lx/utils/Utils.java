@@ -65,11 +65,12 @@ public class Utils {
     }
 
     public static String strNumberFormat(String number) {
-        String v = number.substring(0, number.length() - 2);
         if (number.endsWith("k")) {
+            String v = number.substring(0, number.length() - 2);
             return new BigDecimal(v).multiply(new BigDecimal(1000)).toString();
         }
         if (number.endsWith("w")) {
+            String v = number.substring(0, number.length() - 2);
             return new BigDecimal(v).multiply(new BigDecimal(10000)).toString();
         }
         return number;
