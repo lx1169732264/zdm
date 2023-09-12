@@ -30,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.alibaba.fastjson.JSONObject;
 
 import cn.hutool.core.io.IORuntimeException;
+import cn.hutool.http.HttpException;
 import cn.hutool.http.HttpUtil;
 import lx.model.Zdm;
 import lx.utils.StreamUtils;
@@ -41,24 +42,24 @@ public class ZdmCrawler {
 
     public static void main(String[] args) {
         Set<Zdm> zdms = ZDM_URL.stream().flatMap(url -> {
-            List<Zdm> zdmPage = new ArrayList<>();
-            for (int i = 1; i <= 20; i++) {//爬取前20页数据
-                try {
-                    String s = HttpUtil.get(url + i, 10000);
-                    List<Zdm> zdmPart = JSONObject.parseArray(s, Zdm.class);
-                    zdmPart.forEach(zdm -> {
-                        //将评论和点值数量的值后面会跟着'k','w'这种字符,将它们转换一下方便后面过滤和排序
-                        zdm.setComments(Utils.strNumberFormat(zdm.getComments()));
-                        zdm.setVoted(Utils.strNumberFormat(zdm.getVoted()));
-                    });
-                    zdmPage.addAll(zdmPart);
-                } catch (IORuntimeException e) {
-                    //暂时的网络不通,会导致连接超时的异常,等待下次运行即可
-                    System.out.println("pageNumber:" + i + ", connect to zdm server timeout:" + e.getMessage());
-                }
-            }
-            return zdmPage.stream();
-        }).sorted(Comparator.comparing(Zdm::getComments).reversed())    //评论数量倒序,用LinkedHashSet保证有序
+                    List<Zdm> zdmPage = new ArrayList<>();
+                    for (int i = 1; i <= 20; i++) {//爬取前20页数据
+                        try {
+                            String s = HttpUtil.get(url + i, 10000);
+                            List<Zdm> zdmPart = JSONObject.parseArray(s, Zdm.class);
+                            zdmPart.forEach(zdm -> {
+                                //将评论和点值数量的值后面会跟着'k','w'这种字符,将它们转换一下方便后面过滤和排序
+                                zdm.setComments(Utils.strNumberFormat(zdm.getComments()));
+                                zdm.setVoted(Utils.strNumberFormat(zdm.getVoted()));
+                            });
+                            zdmPage.addAll(zdmPart);
+                        } catch (IORuntimeException | HttpException e) {
+                            //暂时的网络不通,会导致连接超时的异常,等待下次运行即可
+                            System.out.println("pageNumber:" + i + ", connect to zdm server timeout:" + e.getMessage());
+                        }
+                    }
+                    return zdmPage.stream();
+                }).sorted(Comparator.comparing(Zdm::getComments).reversed())    //评论数量倒序,用LinkedHashSet保证有序
                 .collect(Collectors.toCollection(LinkedHashSet::new));//ZDM_URL这里是按多个时间段纬度的排行榜进行爬取的,会存在相同优惠信息被重复爬取的情况,Zdm类重写了equals(),利用Set去重
 
         //unpushed.txt记录了上次执行后,未推送的优惠信息
