@@ -93,8 +93,8 @@ public class ZdmCrawler {
                         && Integer.parseInt(z.getComments()) > Integer.parseInt(System.getenv("minComments")) //评论的数量
                         && !z.getPrice().contains("前") //不是前xxx名的耍猴抢购
                         && !pushedIds.contains(z.getArticleId()) //不是已经推送过的
-                &&StringUtils.isNotBlank(StreamUtils.findFirst(whiteWords, w -> z.getTitle().contains(w)
-                        &&Integer.parseInt(z.getPrice()) <= Integer.parseInt(w.split(",")[1].trim())))
+                &&StringUtils.isNotBlank(StreamUtils.findFirst(whiteWords, w -> (z.getTitle().contains(w)
+                        &&Integer.parseInt(z.getPrice().split("元")[0].trim()) <= Integer.parseInt(w.split(",")[1].trim()))))
         ));
         zdms.forEach(z -> System.out.println(z.getArticleId() + " | " + z.getTitle()));
 
