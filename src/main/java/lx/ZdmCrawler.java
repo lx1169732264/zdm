@@ -43,7 +43,7 @@ public class ZdmCrawler {
     public static void main(String[] args) {
         Set<Zdm> zdms = ZDM_URL.stream().flatMap(url -> {
                     List<Zdm> zdmPage = new ArrayList<>();
-                    for (int i = 1; i <= 50; i++) {//爬取前20页数据
+                    for (int i = 1; i <= 20; i++) {//爬取前20页数据
                         try {
                             String s = HttpUtil.get(url + i, 10000);
                             List<Zdm> zdmPart = JSONObject.parseArray(s, Zdm.class);
