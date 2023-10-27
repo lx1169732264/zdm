@@ -43,7 +43,7 @@ public class ZdmCrawler {
     public static void main(String[] args) {
         Set<Zdm> zdms = ZDM_URL.stream().flatMap(url -> {
                     List<Zdm> zdmPage = new ArrayList<>();
-                    for (int i = 1; i <= 50; i++) {//爬取前20页数据
+                    for (int i = 1; i <= 300; i++) {//爬取前20页数据
                         try {
                             String s = HttpUtil.get(url + i, 10000);
                             List<Zdm> zdmPart = JSONObject.parseArray(s, Zdm.class);
@@ -65,7 +65,7 @@ public class ZdmCrawler {
         //unpushed.txt记录了上次执行后,未推送的优惠信息
         HashSet<String> unPushed = Utils.readFile("./unpushed.txt");
         zdms.addAll(StreamUtils.map(unPushed, o -> JSONObject.parseObject(o, Zdm.class)));
-
+System.out.println("zdms:"+zdms.size());
         //黑词过滤
         HashSet<String> blackWords = Utils.readFile("./black_words.txt");
         blackWords.removeIf(StringUtils::isBlank);
@@ -89,16 +89,16 @@ public class ZdmCrawler {
 
         zdms = new HashSet<>(StreamUtils.filter(zdms, z ->
                 StringUtils.isBlank(StreamUtils.findFirst(blackWords, w -> z.getTitle().contains(w))) //黑词过滤
-                        && Integer.parseInt(z.getVoted()) > Integer.parseInt(System.getenv("minVoted")) //值的数量
-                        && Integer.parseInt(z.getComments()) > Integer.parseInt(System.getenv("minComments")) //评论的数量
+                        && Integer.parseInt(z.getVoted()) > getEnvValue("minVoted",5) //值的数量
+                        && Integer.parseInt(z.getComments()) > getEnvValue("minComments",2) //评论的数量
                         && !z.getPrice().contains("前") //不是前xxx名的耍猴抢购
                         && !pushedIds.contains(z.getArticleId()) //不是已经推送过的
                 &&StringUtils.isNotBlank(StreamUtils.findFirst(whiteWords, w -> (z.getTitle().contains(w.split(",")[0].trim())
                         &&Double.parseDouble(z.getPrice().split("元")[0].trim()) <= Double.parseDouble(w.split(",")[1].trim()))))
         ));
         zdms.forEach(z -> System.out.println(z.getArticleId() + " | " + z.getTitle()));
-
-        if (zdms.size() > Integer.parseInt(System.getenv("MIN_PUSH_SIZE"))) {
+        System.out.println("zdms:"+zdms.size());
+        if (zdms.size() > getEnvValue("MIN_PUSH_SIZE",1)) {
             sendEmail(Utils.buildMessage(new ArrayList<>(zdms)));
             Utils.write("./logs/" + LocalDate.now() + "/pushed.txt", true, StreamUtils.map(zdms, Zdm::getArticleId));
         } else {
@@ -106,6 +106,12 @@ public class ZdmCrawler {
         }
     }
 
+    private static int getEnvValue(String envValue, int defaultValue){
+        if(System.getenv(envValue)==null){
+            return defaultValue;
+        }
+        return Integer.parseInt(System.getenv(envValue));
+    }
     public static void sendEmail(String text) {
         Properties props = new Properties();
         props.setProperty("mail.smtp.host", System.getenv("emailHost"));
