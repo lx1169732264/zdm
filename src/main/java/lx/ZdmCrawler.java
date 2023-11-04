@@ -89,8 +89,8 @@ System.out.println("zdms:"+zdms.size());
 
         zdms = new HashSet<>(StreamUtils.filter(zdms, z ->
                 StringUtils.isBlank(StreamUtils.findFirst(blackWords, w -> z.getTitle().contains(w))) //黑词过滤
-                        && Integer.parseInt(z.getVoted()) > getEnvValue("minVoted",5) //值的数量
-                        && Integer.parseInt(z.getComments()) > getEnvValue("minComments",2) //评论的数量
+                        && Integer.parseInt(z.getVoted()) > getEnvValue("minVoted",2) //值的数量
+                        && Integer.parseInt(z.getComments()) > getEnvValue("minComments",1) //评论的数量
                         && !z.getPrice().contains("前") //不是前xxx名的耍猴抢购
                         && !pushedIds.contains(z.getArticleId()) //不是已经推送过的
                 &&StringUtils.isNotBlank(StreamUtils.findFirst(whiteWords, w -> (z.getTitle().contains(w.split(",")[0].trim())
