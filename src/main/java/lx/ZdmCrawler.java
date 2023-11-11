@@ -93,6 +93,7 @@ System.out.println("zdms:"+zdms.size());
                         && Integer.parseInt(z.getComments()) > getEnvValue("minComments",1) //评论的数量
                         && !z.getPrice().contains("前") //不是前xxx名的耍猴抢购
                         && !pushedIds.contains(z.getArticleId()) //不是已经推送过的
+                        && Double.parseDouble(z.getPrice().split("元")[0].trim()) > 50
                 &&StringUtils.isNotBlank(StreamUtils.findFirst(whiteWords, w -> (z.getTitle().contains(w.split(",")[0].trim())
                         &&Double.parseDouble(z.getPrice().split("元")[0].trim()) <= Double.parseDouble(w.split(",")[1].trim()))))
         ));
