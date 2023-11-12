@@ -93,7 +93,7 @@ System.out.println("zdms:"+zdms.size());
                         && Integer.parseInt(z.getComments()) > getEnvValue("minComments",1) //评论的数量
                         && !z.getPrice().contains("前") //不是前xxx名的耍猴抢购
                         && !pushedIds.contains(z.getArticleId()) //不是已经推送过的
-                        && isTextConvertibleToDoubleAndLessThan50(z.getPrice().split("元")[0].trim())
+                        && isTextConvertibleToDoubleAndLargerThan100(z.getPrice().split("元")[0].trim())
                 &&StringUtils.isNotBlank(StreamUtils.findFirst(whiteWords, w -> (z.getTitle().contains(w.split(",")[0].trim())
                         &&Double.parseDouble(z.getPrice().split("元")[0].trim()) <= Double.parseDouble(w.split(",")[1].trim()))))
         ));
@@ -106,10 +106,10 @@ System.out.println("zdms:"+zdms.size());
             Utils.write("./unpushed.txt", false, StreamUtils.map(zdms, JSONObject::toJSONString));
         }
     }
-    private static boolean isTextConvertibleToDoubleAndLessThan50(String text) {
+    private static boolean isTextConvertibleToDoubleAndLargerThan100(String text) {
         try {
             double doubleValue = Double.parseDouble(text);
-            return doubleValue < 50;
+            return doubleValue > 100;
         } catch (NumberFormatException e) {
             // 处理转换异常，例如日志记录或其他逻辑
             System.err.println("Error converting text to double: " + e.getMessage());
