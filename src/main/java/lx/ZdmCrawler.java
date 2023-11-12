@@ -43,7 +43,7 @@ public class ZdmCrawler {
     public static void main(String[] args) {
         Set<Zdm> zdms = ZDM_URL.stream().flatMap(url -> {
                     List<Zdm> zdmPage = new ArrayList<>();
-                    for (int i = 1; i <= 300; i++) {//爬取前20页数据
+                    for (int i = 1; i <= 10; i++) {//爬取前20页数据
                         try {
                             String s = HttpUtil.get(url + i, 10000);
                             List<Zdm> zdmPart = JSONObject.parseArray(s, Zdm.class);
@@ -93,7 +93,7 @@ System.out.println("zdms:"+zdms.size());
                         && Integer.parseInt(z.getComments()) > getEnvValue("minComments",1) //评论的数量
                         && !z.getPrice().contains("前") //不是前xxx名的耍猴抢购
                         && !pushedIds.contains(z.getArticleId()) //不是已经推送过的
-                        && Double.parseDouble(z.getPrice().split("元")[0].trim()) > 50
+                        && isTextConvertibleToDoubleAndLessThan50(z.getPrice().split("元")[0].trim())
                 &&StringUtils.isNotBlank(StreamUtils.findFirst(whiteWords, w -> (z.getTitle().contains(w.split(",")[0].trim())
                         &&Double.parseDouble(z.getPrice().split("元")[0].trim()) <= Double.parseDouble(w.split(",")[1].trim()))))
         ));
@@ -106,7 +106,16 @@ System.out.println("zdms:"+zdms.size());
             Utils.write("./unpushed.txt", false, StreamUtils.map(zdms, JSONObject::toJSONString));
         }
     }
-
+    private static boolean isTextConvertibleToDoubleAndLessThan50(String text) {
+        try {
+            double doubleValue = Double.parseDouble(text);
+            return doubleValue < 50;
+        } catch (NumberFormatException e) {
+            // 处理转换异常，例如日志记录或其他逻辑
+            System.err.println("Error converting text to double: " + e.getMessage());
+            return false; // 或者根据需求进行其他处理
+        }
+    }
     private static int getEnvValue(String envValue, int defaultValue){
         if(System.getenv(envValue)==null){
             return defaultValue;
