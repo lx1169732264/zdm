@@ -125,6 +125,9 @@ System.out.println("zdms:"+zdms.size());
     public static void sendEmail(String text) {
         Properties props = new Properties();
         props.setProperty("mail.smtp.host", System.getenv("emailHost"));
+        props.setProperty("mail.smtp.port", "465");
+        props.setProperty("mail.smtp.socketFactory.port", "465");
+        props.setProperty("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
         props.setProperty("mail.smtp.auth", "true");
         try {
             Session session = Session.getDefaultInstance(props, new Authenticator() {
