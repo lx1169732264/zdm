@@ -104,7 +104,9 @@ public class ZdmCrawler {
     public static void sendEmail(String text) {
         Properties props = new Properties();
         props.setProperty("mail.smtp.host", System.getenv("emailHost"));
+        props.setProperty("mail.smtp.port", "465");
         props.setProperty("mail.smtp.auth", "true");
+        props.setProperty("mail.smtp.ssl.enable", "true");
         try {
             Session session = Session.getDefaultInstance(props, new Authenticator() {
                 @Override
@@ -124,5 +126,4 @@ public class ZdmCrawler {
             throw new RuntimeException("邮件发送失败");
         }
     }
-
 }
