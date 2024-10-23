@@ -84,13 +84,35 @@ public class ZdmCrawler {
             throw new RuntimeException("读取logs目录失败");
         }
 
-        zdms = new HashSet<>(StreamUtils.filter(zdms, z ->
-                StringUtils.isBlank(StreamUtils.findFirst(blackWords, w -> z.getTitle().contains(w))) //黑词过滤
-                        && Integer.parseInt(z.getVoted()) > Integer.parseInt(System.getenv("minVoted")) //值的数量
-                        && Integer.parseInt(z.getComments()) > Integer.parseInt(System.getenv("minComments")) //评论的数量
-                        && !z.getPrice().contains("前") //不是前xxx名的耍猴抢购
-                        && !pushedIds.contains(z.getArticleId()) //不是已经推送过的
-        ));
+        //白词过滤内容
+        HashSet<String> whiteWords = Utils.readFile("./white_words.txt");
+        whiteWords.removeIf(StringUtils::isBlank);
+
+        if (whiteWords.isEmpty()) {
+            //如果白词文件为空，则使用原来的黑词模式
+            System.out.println("whiteWords is empty, running in blackWords mode.");
+            zdms = new HashSet<>(StreamUtils.filter(zdms, z ->
+                    StringUtils.isBlank(StreamUtils.findFirst(blackWords, w -> z.getTitle().contains(w))) //黑词过滤
+                            && Integer.parseInt(z.getVoted()) > Integer.parseInt(System.getenv("minVoted")) //值的数量
+                            && Integer.parseInt(z.getComments()) > Integer.parseInt(System.getenv("minComments")) //评论的数量
+                            && !z.getPrice().contains("前") //不是前xxx名的耍猴抢购
+                            && !pushedIds.contains(z.getArticleId()) //不是已经推送过的
+            ));
+        } else {
+            //如果白词文件不为空，则启用新的白词模式，仅发送包含白名单中的商品优惠信息
+            System.out.println("whiteWords is not empty, running in whiteWords mode.");
+            for (String word : whiteWords) {
+                System.out.println(word);
+            }
+            zdms = new HashSet<>(StreamUtils.filter(zdms, z ->
+                    !StringUtils.isBlank(StreamUtils.findFirst(whiteWords, w -> z.getTitle().contains(w))) //白词过滤
+                            && Integer.parseInt(z.getVoted()) > Integer.parseInt(System.getenv("minVoted")) //值的数量
+                            && Integer.parseInt(z.getComments()) > Integer.parseInt(System.getenv("minComments")) //评论的数量
+                            && !z.getPrice().contains("前") //不是前xxx名的耍猴抢购
+                            && !pushedIds.contains(z.getArticleId()) //不是已经推送过的
+            ));
+        }
+
         zdms.forEach(z -> System.out.println(z.getArticleId() + " | " + z.getTitle()));
 
         if (zdms.size() > Integer.parseInt(System.getenv("MIN_PUSH_SIZE"))) {
