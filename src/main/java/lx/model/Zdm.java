@@ -1,13 +1,12 @@
 package lx.model;
 
-import java.util.Objects;
-
 import com.alibaba.fastjson.annotation.JSONField;
-
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
+
+import java.util.Objects;
 
 @Getter
 @Setter
@@ -40,12 +39,11 @@ public class Zdm implements Crawlable {
     @Override
     public String toHtmlTr() {
         return "<tr>" +
-                "<td><img width='100px' height='100px' src='" + picUrl + "'/></td>" +
-                "<td>" + title + "</td>" +
+                "<td><img src='" + picUrl + "'/></td>" +
+                "<td>" + "<a target='_blank' href='" + url + "'>" + title + "</a></td>" +
                 "<td>" + price + "</td>" +
                 "<td>" + voted + "/" + comments + "</td>" +
                 "<td>" + articleMall + "</td>" +
-                "<td>" + "<a href='" + url + "'>详情</a>" + "</td>" +
                 "</tr>";
     }
 
