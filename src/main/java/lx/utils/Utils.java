@@ -20,8 +20,8 @@ public class Utils {
         zdms.sort(Comparator.comparingInt(Crawlable::obtainSortOrder).reversed());
 
         StringBuilder s = new StringBuilder();
-        s.append("<table border=\"1\">");
-        s.append("<tr><th>图</th><th>标题</th><th>价格</th><th>赞/评</th><th>平台</th></tr>");
+        s.append("<table border='1'>");
+        s.append("<tr><th width='20%'>图</th><th width='45%'>标题</th><th width='15%'>价格</th><th width='10%'>赞/评</th><th width='10%'>平台</th></tr>");
         zdms.forEach(z -> s.append(z.toHtmlTr()));
         s.append("</table>");
         return s.toString();

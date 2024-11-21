@@ -1,13 +1,15 @@
 package lx.utils;
 
-import java.util.List;
-
 import com.google.common.collect.Lists;
 
-public class Const {
-    public static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36";
+import java.util.List;
 
-    public static final List<String> ZDM_URL = Lists.newArrayList("https://faxian.smzdm.com/json_more?filter=h2s0t0f0c3&page=",
+public interface Const {
+
+    List<String> ZDM_URL = Lists.newArrayList("https://faxian.smzdm.com/json_more?filter=h2s0t0f0c3&page=",
             "https://faxian.smzdm.com/json_more?filter=h3s0t0f0c3&page=");
+
+    //WxPusher极简推送模式的链接
+    String WXPUSHER_URL = "https://wxpusher.zjiecode.com/api/send/message/simple-push";
 
 }
