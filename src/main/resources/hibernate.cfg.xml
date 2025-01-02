@@ -1,0 +1,19 @@
+<!DOCTYPE hibernate-configuration PUBLIC "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <property name="hibernate.dialect">org.hibernate.community.dialect.SQLiteDialect</property>
+        <property name="hibernate.connection.driver_class">org.sqlite.JDBC</property>
+        <property name="hibernate.connection.url">jdbc:sqlite:database.db</property>
+        <property name="hibernate.connection.username"></property>
+        <property name="hibernate.connection.password"></property>
+        <property name="hibernate.hbm2ddl.auto">update</property>
+        <!--show_sql为true时会打印sql,不过内容太长了,debug的时候可以改成true-->
+        <property name="show_sql">false</property>
+        <property name="format_sql">false</property>
+        <property name="use_sql_comments">true</property>
+        <property name="hibernate.temp.use_jdbc_metadata_defaults">false</property>
+        <mapping class="lx.model.Zdm"/>
+        <mapping resource="Zdm.hbm.xml"/>
+    </session-factory>
+</hibernate-configuration>
