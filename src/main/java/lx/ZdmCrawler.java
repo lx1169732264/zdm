@@ -1,27 +1,49 @@
 package lx;
 
-import cn.hutool.core.io.IORuntimeException;
-import cn.hutool.http.ContentType;
-import cn.hutool.http.HttpException;
-import cn.hutool.http.HttpUtil;
-import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.Lists;
-import lx.mapper.ZdmMapper;
-import lx.model.Zdm;
-import lx.utils.StreamUtils;
-import lx.utils.Utils;
-import org.apache.commons.lang3.StringUtils;
-
-import javax.mail.*;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.mail.Authenticator;
+import javax.mail.Message;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Lists;
+
+import cn.hutool.core.io.IORuntimeException;
+import cn.hutool.http.ContentType;
+import cn.hutool.http.HttpException;
+import cn.hutool.http.HttpUtil;
+import lx.mapper.ZdmMapper;
+import lx.model.Zdm;
+import lx.utils.StreamUtils;
+import lx.utils.Utils;
 
 import static lx.utils.Const.WXPUSHER_URL;
 import static lx.utils.Const.ZDM_URL;
@@ -78,12 +100,24 @@ public class ZdmCrawler {
         //上次执行后未推送的优惠信息
         List<Zdm> unPush = ZdmMapper.unPush();
 
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build();
+
         //从网页上获取的优惠信息
         Stream<Zdm> crawled = ZDM_URL.stream().flatMap(url -> {
             List<Zdm> zdmPage = new ArrayList<>();
             for (int i = 1; i <= maxPageSize; i++) {
                 try {
-                    String s = HttpUtil.get(url + i, 10000);
+                    /**
+                     * 2025-05-08 什么值得买的这个接口似乎加了反爬虫机制,偶尔会返回一段js的验证码,导致JSONObject解析json时报错
+                     * 分别尝试了cn.hutool.http.HttpUtil 和 java.net.http.HttpRequest两个接口调用工具,发现HttpUtil会出现上述问题,可能是这两种调用方式生成的请求头有所不同导致的?
+                     * 总之不太清楚是触发了什么反爬虫的规则.有懂哥可以帮忙看看
+                     */
+                    HttpRequest httpRequest = HttpRequest.newBuilder().GET().uri(URI.create(url + i)).build();
+                    String s = client.send(httpRequest, HttpResponse.BodyHandlers.ofString()).body();
+
                     List<Zdm> zdmPart = JSONObject.parseArray(s, Zdm.class);
                     zdmPart.forEach(zdm -> {
                         //评论和点值数量的值后面会跟着'k','w'这种字符,将它们转换一下方便后面过滤和排序
@@ -97,7 +131,7 @@ public class ZdmCrawler {
                                 .toLocalDateTime().toString());
                     });
                     zdmPage.addAll(zdmPart);
-                } catch (IORuntimeException | HttpException e) {
+                } catch (IORuntimeException | HttpException | IOException | InterruptedException e) {
                     //暂时的网络不通,会导致连接超时的异常,等待下次运行即可
                     System.out.println("pageNumber:" + i + ", connect to zdm server timeout:" + e.getMessage());
                 }
@@ -106,7 +140,7 @@ public class ZdmCrawler {
         });
 
         return Stream.concat(crawled, unPush.stream())  //两个stream合并,一起参与排序和去重操作
-                .sorted(Comparator.comparing(Zdm::getComments).reversed())    //评论数量倒序,用LinkedHashSet保证有序
+                .sorted(Comparator.comparing(Zdm::getComments, Comparator.comparingInt(Integer::parseInt)).reversed())    //评论数量倒序,用LinkedHashSet保证有序
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
