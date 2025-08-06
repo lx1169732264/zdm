@@ -3,6 +3,7 @@
 从什么值得买的好价排行榜中收集优惠信息,并推送至邮箱或微信   
 推送内容包含商品图片、标题、价格、点值的数量、评论数量等信息, 点击商品标题的超链接即可跳转至什么值得买查看正文   
 项目运行过程中会在根目录下自动创建`database.db`数据库文件,数据库中会记录已推送的优惠信息,避免重复推送   
+
 ---
 技术框架: Java11 + Maven + SqlLite + Hibernate   
 支持GitHub Actions定时运行,无需搭建服务器   
@@ -13,12 +14,13 @@
 *  fork本仓库
 *  新增Actions secrets. 选择邮箱推送需要填写`EMAILACCOUNT`和`EMAILPASSWORD`.选择微信推送需要填写`SPT`
 
-| secret        |   | 说明                                                                                           |
-|---------------|---|----------------------------------------------------------------------------------------------|
-| EMAILACCOUNT  | 选填 | 接收优惠信息的邮箱                                                                                    |
-| EMAILPASSWORD | 选填 | 邮箱的授权码,[参考qq邮箱的这篇文档](https://service.mail.qq.com/cgi-bin/help?subtype=1&&id=28&&no=1001256)  |
-| SPT           | 选填 | WxPusher极简推送使用的身份ID,[参考WxPusher文档](https://wxpusher.zjiecode.com/docs/#/?id=spt)             |
-| GIT_TOKEN     | 必填 | [参考这篇文章的1-6步骤](https://zhuanlan.zhihu.com/p/501872439),只勾选repo的权限,Expiration设置为No Expiration |
+| secret        |   | 说明                                                                                            |
+|---------------|---|-----------------------------------------------------------------------------------------------|
+| EMAILACCOUNT  | 选填 | 接收优惠信息的邮箱                                                                                     |
+| EMAILPASSWORD | 选填 | 邮箱的授权码,[参考qq邮箱的这篇文档](https://service.mail.qq.com/cgi-bin/help?subtype=1&&id=28&&no=1001256)   |
+| SPT           | 选填 | WxPusher极简推送使用的身份ID,[参考WxPusher文档](https://wxpusher.zjiecode.com/docs/#/?id=spt)              |
+| GIT_TOKEN     | 必填 | [参考这篇文章的1-6步骤](https://zhuanlan.zhihu.com/p/501872439),只勾选repo的权限,Expiration设置为No Expiration  |
+| COOKIE        | 选填 | 请求什么值得买服务器时请求头携带的cookie参数. 不填的话是在首次请求时自动生成, 填写时为固定cookie. 请使用F12查看cookie值, 并确保不要将cookie明文泄漏出去 |
 
 <img src="https://raw.githubusercontent.com/lx1169732264/Images/master/zdmActions.png" width = "700" height = "350" alt="图片名称" align=center />
 
@@ -67,7 +69,8 @@
 
 | 日期         | 说明                                                                                 |
 |------------|------------------------------------------------------------------------------------|
-| 2025/05/08 | 将接口调用的工具类从cn.hutool.http.HttpUtil切换到java.net.http.HttpRequest                                               |
+| 2025/08/06 | 请求头增加自定义的cookie参数                                                                  |
+| 2025/05/08 | 将接口调用的工具类从cn.hutool.http.HttpUtil切换到java.net.http.HttpRequest                      |
 | 2025/01/02 | 用SqlLite改写已推送优惠信息的记录方式,升级JDK版本到11                                                  |
 | 2024/11/22 | 1.新增WxPusher推送方式; 2.为了适应移动端小屏幕展示效果,将跳转至什么值得买的超链接从详情列改为商品标题列,并移除了详情列,让表格的其余列有更充足的宽度 |
 | 2024/10/23 | 支持白名单匹配模式以允许用户设置感兴趣的关键词进行推送                                                        |
