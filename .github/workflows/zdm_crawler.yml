@@ -17,6 +17,25 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
         cache: maven
+    # 将apt下载的软件包缓存到GitHub的存储服务上
+    - name: Cache apt packages
+      uses: actions/cache@v3
+      with:
+        path: /var/cache/apt/archives
+        key: ${{ runner.os }}-apt-${{ hashFiles('**/pom.xml') }}  # 根据项目文件生成唯一 key
+        restore-keys: |
+          ${{ runner.os }}-apt-
+    # 安装Chrome和 ChromeDriver
+    - name: Install Chrome & ChromeDriver
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
+        CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
+        wget -O chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION/linux64/chromedriver-linux64.zip"
+        unzip chromedriver.zip
+        sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
+        sudo chmod +x /usr/local/bin/chromedriver
+    # 打包项目
     - name: Build with Maven
       run: |
         mvn package
@@ -46,7 +65,7 @@ jobs:
         # true:下载阶段打印出详细信息(待推送的优惠信息列表,过滤时使用的黑白词),因文本量比较大,在调通项目后可以改为false
         detail: false
       run: java -jar zdm.jar
-    #保存已推送和暂未推送的优惠信息
+    # 保存已推送和暂未推送的优惠信息
     - name: git add files
       run: |
         git add database.db
