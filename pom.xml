@@ -63,6 +63,12 @@
             <artifactId>hibernate-community-dialects</artifactId>
             <version>6.0.0.Final</version>
         </dependency>
+        <!-- Maven 依赖 -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>4.34.0</version>
+        </dependency>
     </dependencies>
 
     <build>

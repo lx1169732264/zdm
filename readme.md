@@ -14,13 +14,13 @@
 *  fork本仓库
 *  新增Actions secrets. 选择邮箱推送需要填写`EMAILACCOUNT`和`EMAILPASSWORD`.选择微信推送需要填写`SPT`
 
-| secret        |   | 说明                                                                                            |
-|---------------|---|-----------------------------------------------------------------------------------------------|
-| EMAILACCOUNT  | 选填 | 接收优惠信息的邮箱                                                                                     |
-| EMAILPASSWORD | 选填 | 邮箱的授权码,[参考qq邮箱的这篇文档](https://service.mail.qq.com/cgi-bin/help?subtype=1&&id=28&&no=1001256)   |
-| SPT           | 选填 | WxPusher极简推送使用的身份ID,[参考WxPusher文档](https://wxpusher.zjiecode.com/docs/#/?id=spt)              |
-| GIT_TOKEN     | 必填 | [参考这篇文章的1-6步骤](https://zhuanlan.zhihu.com/p/501872439),只勾选repo的权限,Expiration设置为No Expiration  |
-| COOKIE        | 选填 | 请求什么值得买服务器时请求头携带的cookie参数. 不填的话是在首次请求时自动生成, 填写时为固定cookie. 请使用F12查看cookie值, 并确保不要将cookie明文泄漏出去 |
+| secret        |   | 说明                                                                                                                                   |
+|---------------|---|--------------------------------------------------------------------------------------------------------------------------------------|
+| EMAILACCOUNT  | 选填 | 接收优惠信息的邮箱                                                                                                                            |
+| EMAILPASSWORD | 选填 | 邮箱的授权码,[参考qq邮箱的这篇文档](https://service.mail.qq.com/cgi-bin/help?subtype=1&&id=28&&no=1001256)                                          |
+| SPT           | 选填 | WxPusher极简推送使用的身份ID,[参考WxPusher文档](https://wxpusher.zjiecode.com/docs/#/?id=spt)                                                     |
+| GIT_TOKEN     | 必填 | [参考这篇文章的1-6步骤](https://zhuanlan.zhihu.com/p/501872439),只勾选repo的权限,Expiration设置为No Expiration                                         |
+| COOKIE        | 选填 | 请求什么值得买服务器时请求头携带的cookie参数. 不填的话会用selenium模拟浏览器行为自动获取cookie(推荐), 自动的代码失效时再考虑填写固定的cookie值(请使用F12查看cookie值, 并确保不要将cookie明文泄漏出去) |
 
 <img src="https://raw.githubusercontent.com/lx1169732264/Images/master/zdmActions.png" width = "700" height = "350" alt="图片名称" align=center />
 
@@ -69,6 +69,7 @@
 
 | 日期         | 说明                                                                                 |
 |------------|------------------------------------------------------------------------------------|
+| 2025/08/08 | 1.用selenium模拟浏览器行为自动获取cookie; 2.调用什么值得买的分页接口增加随机延时                                 |
 | 2025/08/06 | 请求头增加自定义的cookie参数                                                                  |
 | 2025/05/08 | 将接口调用的工具类从cn.hutool.http.HttpUtil切换到java.net.http.HttpRequest                      |
 | 2025/01/02 | 用SqlLite改写已推送优惠信息的记录方式,升级JDK版本到11                                                  |
