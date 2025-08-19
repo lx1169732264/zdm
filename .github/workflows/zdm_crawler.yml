@@ -17,19 +17,11 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
         cache: maven
-    # 将apt下载的软件包缓存到GitHub的存储服务上
-    - name: Cache apt packages
-      uses: actions/cache@v3
-      with:
-        path: /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-${{ hashFiles('**/pom.xml') }}  # 根据项目文件生成唯一 key
-        restore-keys: |
-          ${{ runner.os }}-apt-
     # 安装Chrome和 ChromeDriver
-    - name: Install Chrome & ChromeDriver
+    - name: Setup Chrome
+      uses: browser-actions/setup-chrome@v1
+    - name: Install ChromeDriver
       run: |
-        sudo apt-get update
-        sudo apt-get install -y google-chrome-stable
         CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
         wget -O chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION/linux64/chromedriver-linux64.zip"
         unzip chromedriver.zip
