@@ -24,12 +24,14 @@ import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.net.HttpCookie;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -129,23 +131,25 @@ public class ZdmCrawler {
          * __ckguid是响应头的set-cookie里取下来的, x-waf-captcha-referer固定为空, w_tsfp是靠访问probe.js动态生成
          * 这里支持从selenium模拟浏览器行为自动获取cookie,也支持在环境变量里自定义固定的cookie值
          */
-        HttpRequest request = HttpUtil.createGet(url).contentType(ContentType.JSON.getValue());
-        if (StringUtils.isNotBlank(cookie))
-            request.header("cookie", cookie);
-        else
-            request.cookie(buildCookies());
-
         try {
+            HttpRequest request = HttpUtil.createGet(url).contentType(ContentType.JSON.getValue());
+            if (StringUtils.isNotBlank(cookie))
+                request.header("cookie", cookie);
+            else
+                request.cookie(buildCookies());
+
             String s = request.execute().body();
             return JSONObject.parseArray(s, Zdm.class);
-        } catch (IORuntimeException | HttpException | JSONException e) {
+        } catch (IORuntimeException | HttpException | JSONException | java.util.concurrent.TimeoutException |
+                 org.openqa.selenium.TimeoutException e) {
             //尝试重新获取cookie并重试接口, 重试次数耗尽则结束任务
             if (retry > 0) {
                 System.out.println("接口调用失败,进行重试");
                 clearCookie();
                 return processCrawl(url, cookie, retry - 1);
             }
-            throw e;
+            e.printStackTrace();
+            throw new RuntimeException("接口调用失败,程序终止");
         }
     }
 
@@ -249,7 +253,7 @@ public class ZdmCrawler {
         return true;
     }
 
-    private static Collection<HttpCookie> buildCookies() {
+    private static Collection<HttpCookie> buildCookies() throws TimeoutException {
         if (driver == null) {
             /**
              * GitActions运行时, 已通过工作流配置好了ChromeDriver的路径
@@ -260,6 +264,7 @@ public class ZdmCrawler {
             options.addArguments("--disable-gpu");      // 禁用 GPU 加速（Linux 必备）
             options.addArguments("--no-sandbox");       // 禁用沙盒（CI 环境必备）
             options.addArguments("--disable-dev-shm-usage"); // 避免 /dev/shm 不足
+            options.setPageLoadTimeout(Duration.ofSeconds(60));
             driver = new ChromeDriver(options);
         }
 
