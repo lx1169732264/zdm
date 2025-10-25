@@ -115,7 +115,7 @@ public class ZdmCrawler {
 
                 System.out.println("第" + i + "页数据获取成功, 当前页数据条数" + zdmPart.size());
                 //翻页的间隔时间(毫秒)
-                ThreadUtil.sleep(ThreadLocalRandom.current().nextInt(100, 1001));
+                ThreadUtil.sleep(ThreadLocalRandom.current().nextInt(500, 1500));
             }
             return zdmPage.stream();
         });
