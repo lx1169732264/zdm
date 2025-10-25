@@ -8,6 +8,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.commons.lang3.RandomUtils;
+
+import static lx.utils.Const.USER_AGENTS;
+
 public class Utils {
 
     public static String buildMessage(List<? extends Crawlable> list) {
@@ -68,4 +72,7 @@ public class Utils {
         return number;
     }
 
+    public static String ramdomUserAgent() {
+        return USER_AGENTS.get(RandomUtils.nextInt(0, USER_AGENTS.size()));
+    }
 }
