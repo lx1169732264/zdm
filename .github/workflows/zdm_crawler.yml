@@ -35,7 +35,7 @@ jobs:
     - name: main logic
       env:
         #爬取数据时的最大翻页数量
-        maxPageSize: 20
+        maxPageSize: 10
         # 点值的数量>minVoted,才会被推送,填0为都推送
         minVoted: 10
         # 评论的数量>minComments,才会被推送,填0为都推送
@@ -50,8 +50,6 @@ jobs:
         emailAccount: ${{secrets.emailAccount}}
         # 接收优惠信息的邮箱的授权码 为空代表不进行邮箱推送
         emailPassword: ${{secrets.emailPassword}}
-        # 请求什么值得买服务器时请求头携带的cookie参数
-        cookie: ${{secrets.cookie}}
         # WxPusher极简推送模式的spt 为空代表不进行Wx推送
         spt: ${{secrets.spt}}
         # true:下载阶段打印出详细信息(待推送的优惠信息列表,过滤时使用的黑白词),因文本量比较大,在调通项目后可以改为false
