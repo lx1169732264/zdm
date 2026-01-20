@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="lx.model.Zdm" table="ZDM">
+        <id name="articleId" column="article_id" type="string">
+            <generator class="assigned"/>
+            <!-- 如果你的ID是自增的，你会使用不同的生成器，比如native或identity，但在这里我们假设它是分配的 -->
+        </id>
+        <property name="title" column="article_title" type="string"/>
+        <property name="url" column="article_url" type="string"/>
+        <property name="picUrl" column="article_pic_url" type="string"/>
+        <property name="price" column="article_price" type="string"/>
+        <property name="voted" column="voted" type="string"/>
+        <property name="comments" column="article_comment" type="string"/>
+        <property name="articleMall" column="article_mall" type="string"/>
+        <property name="article_time" column="article_time" type="text"/>
+        <property name="pushed" column="pushed" type="boolean"/>
+    </class>
+</hibernate-mapping>
