@@ -265,7 +265,7 @@ public class ZdmCrawler {
         //推送内容
         body.put("content", text);
         //消息摘要，显示在微信聊天页面或者模版消息卡片上，限制长度20(微信只能显示20)，可以不传，不传默认截取content前面的内容。
-        body.put("summary", "zdm优惠信息汇总");
+        body.put("summary", DateTimeFormatter.ofPattern("yyyy-MM-dd").format(LocalDateTime.now())+"优惠信息汇总" );
         //内容类型 1表示文字  2表示html 3表示markdown
         body.put("contentType", "2");
         body.put("spt", System.getenv("spt"));
