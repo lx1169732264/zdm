@@ -92,13 +92,18 @@ public class ZdmCrawler {
             return;
 
         //部分推送方式存在内容长度限制, 这里加了单次推送的条数限制, 超出则分批推送
-        Lists.partition(new ArrayList<>(zdms), 100).forEach(part -> {
+        // WxPusher限制40000字，这里将分批大小调整为20以确保安全
+        Lists.partition(new ArrayList<>(zdms), 20).forEach(part -> {
             //生成推送消息的正文内容(html格式)
-            String text = Utils.buildMessage(part);
+            // 邮件使用精美版HTML
+            String emailText = lx.utils.HtmlRenderer.render(part);
+            // WxPusher使用简洁版HTML以避免超长
+            String wxText = lx.utils.HtmlRenderer.renderSimple(part);
+
             //通过邮箱推送
-            boolean pushToEmail = pushToEmail(text, emailHost, emailPort, emailAccount, emailPassword);
+            boolean pushToEmail = pushToEmail(emailText, emailHost, emailPort, emailAccount, emailPassword);
             //通过WxPusher推送
-            boolean pushToWx = pushToWx(text, spt);
+            boolean pushToWx = pushToWx(wxText, spt);
             if (!pushToEmail && !pushToWx)
                 throw new RuntimeException("未匹配到推送方式,请检查配置");
 
