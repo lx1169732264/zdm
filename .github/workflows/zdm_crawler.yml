@@ -43,7 +43,8 @@ jobs:
         # 优惠信息数量>MIN_PUSH_SIZE就会发邮件,否则积累到下一次触发任务再决定是否推送. 不建议填太小的数字,避免邮件太多了
         MIN_PUSH_SIZE: 20
         # 邮箱的smtp服务器地址(示例给出的是qq邮箱的配置,非qq邮箱需要进行修改)
-        emailHost: smtp.qq.com
+        emailHost: smtp.exmail.qq.com
+        #emailHost: smtp.qq.com
         # 邮箱smtp服务端口
         emailPort: 465
         # 接收优惠信息的邮箱 为空代表不进行邮箱推送
