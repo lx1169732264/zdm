@@ -19,10 +19,10 @@ public class Utils {
         s.append("<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>");
         s.append("<style>");
         s.append("body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f7f8fa; margin: 0; padding: 10px; color: #333; }");
-        s.append("table { width: 100%; max-width: 800px; margin: 0 auto; border-collapse: collapse; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }");
+        s.append("table { width: 100%; max-width: 1100px; margin: 0 auto; border-collapse: collapse; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }");
         s.append("th { background-color: #f8f9fa; color: #666; font-weight: 600; padding: 12px 15px; text-align: left; font-size: 14px; border-bottom: 1px solid #eee; }");
         s.append("td { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; font-size: 14px; }");
-        s.append("img { display: block; width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #eee; }");
+        s.append("img { display: block; width: 110px; height: 110px; object-fit: cover; border-radius: 4px; border: 1px solid #eee; }");
         s.append("a { color: #333; text-decoration: none; font-weight: 500; line-height: 1.4; display: block; }");
         s.append("a:hover { color: #e4393c; }");
         s.append("td:nth-child(3) { color: #e4393c; font-weight: bold; font-family: Arial, sans-serif; }"); // 价格
