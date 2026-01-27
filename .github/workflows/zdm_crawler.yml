@@ -5,6 +5,12 @@ on:
   #schedule:
     #- cron: "0/15 * * * *"
   workflow_dispatch:
+    inputs:
+      # 这个是手动触发工作流界面上的选项, 选择True时,即使未满足COMMIT_THRESHOLD提交阈值,也会生成提交记录
+      should_commit:
+        description: '立即生成提交记录'
+        type: boolean
+        default: False
 
 jobs:
   build:
@@ -27,6 +33,20 @@ jobs:
         unzip chromedriver.zip
         sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
         sudo chmod +x /usr/local/bin/chromedriver
+    # 将上次运行的缓存文件覆盖到本地
+    - name: database cache restore
+      uses: actions/cache@v4
+      with:
+        path: database_old.db
+        # 每次运行都是唯一的key,避免缓存过期 (缓存总上限10GB, LRU过期策略)
+        key: ${{ runner.os }}-database_old-${{ github.run_number }}
+        # 兜底机制: 匹配符合这个前缀的最新缓存
+        restore-keys: ${{ runner.os }}-database_old-
+    - name: database cache copy
+      run: |
+        if [ -f database_old.db ]; then
+          cp database_old.db database.db
+        fi
     # 打包项目
     - name: Build with Maven
       run: |
@@ -55,11 +75,32 @@ jobs:
         # true:下载阶段打印出详细信息(待推送的优惠信息列表,过滤时使用的黑白词),因文本量比较大,在调通项目后可以改为false
         detail: false
       run: java -jar zdm.jar
+    # 检查数据库中新增行数是否超过提交阈值
+    - name: check database changes
+      id: commit_check
+      env:
+        # 提交阈值,0代表每次运行都会生成commit记录
+        COMMIT_THRESHOLD: 50
+      run: |
+        if [ -f database_old.db ]; then
+          LAST_COUNT=$(sqlite3 database_old.db "SELECT COUNT(*) FROM ZDM;")
+        else
+          LAST_COUNT=0
+        fi
+        CURRENT_COUNT=$(sqlite3 database.db "SELECT COUNT(*) FROM ZDM;")
+        NEW_ROWS=$((CURRENT_COUNT - LAST_COUNT))
+        echo "Last count: $LAST_COUNT , Current count: $CURRENT_COUNT , New rows: $NEW_ROWS"
+        if [ $NEW_ROWS -ge $COMMIT_THRESHOLD ]; then
+          echo "should_commit=true" >> $GITHUB_OUTPUT
+        fi
+        cp database.db database_old.db
     # 保存已推送和暂未推送的优惠信息
     - name: git add files
+      if: steps.commit_check.outputs.should_commit == 'true' || inputs.should_commit == 'true'
       run: |
         git add database.db
     - name: commit & push
+      if: steps.commit_check.outputs.should_commit == 'true' || inputs.should_commit == 'true'
       uses: actions-go/push@master
       with:
         author-email: 'actions@github.com'

@@ -6,6 +6,8 @@ import com.google.common.collect.Lists;
 
 public interface Const {
 
+    String ZDM_DOMAIN = "faxian.smzdm.com";
+
     //什么值得买排行榜数据接口地址
     List<String> ZDM_URL = Lists.newArrayList("https://faxian.smzdm.com/json_more?filter=h2s0t0f0c3&page=",
             "https://faxian.smzdm.com/json_more?filter=h3s0t0f0c3&page=");

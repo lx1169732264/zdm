@@ -22,32 +22,60 @@
 | GIT_TOKEN     | 必填 | [参考这篇文章的1-6步骤](https://zhuanlan.zhihu.com/p/501872439),只勾选repo的权限,Expiration设置为No Expiration                                         |
 | COOKIE        | 选填 | 请求什么值得买服务器时请求头携带的cookie参数. 不填的话会用selenium模拟浏览器行为自动获取cookie(推荐), 自动的代码失效时再考虑填写固定的cookie值(请使用F12查看cookie值, 并确保不要将cookie明文泄漏出去) |
 
-<img src="https://raw.githubusercontent.com/lx1169732264/Images/master/zdmActions.png" width = "700" height = "350" alt="图片名称" align=center />
+<img src="https://raw.githubusercontent.com/lx1169732264/Images/master/zdmActions.png" width = "70%" height = "70%" align=center />
 
 
 * 打开fork项目的workFlow开关
 
-<img src="https://raw.githubusercontent.com/lx1169732264/Images/master/enableWorkFlow.png" width = "700" height = "350" alt="图片名称" align=center />
+<img src="https://raw.githubusercontent.com/lx1169732264/Images/master/enableWorkFlow.png" width = "70%" height = "70%" align=center />
 
-* 修改`./.github/workflows/zdm_crawler.yml`文件中红框所示的内容
+* 修改`./.github/workflows/zdm_crawler.yml`文件中的内容
 
-<img src="https://raw.githubusercontent.com/lx1169732264/Images/master/zdm%E4%BF%AE%E6%94%B9actions%E9%85%8D%E7%BD%AE.png" alt="图片名称" align=center />
+```yaml
+  # 取消这个节点的注释,并调整到你想要的频率
+  schedule:
+    - cron: "0/15 * * * *"
+```
 
+```yaml
+      # 调整为你需要的邮箱域名和端口号, 该节点下的其余配置项按自身需求来改
+      - name: main logic
+        env:
+            emailHost: 
+            emailPort: 
+```
 
 * 手动触发一次,测试下能不能跑通
 
-<img src="https://raw.githubusercontent.com/lx1169732264/Images/master/runWorkFlow.png" width = "500" height = "200" alt="图片名称" align=center />
+<img src="https://raw.githubusercontent.com/lx1169732264/Images/master/runWorkFlow.png" width = "70%" height = "70%" align=center />
 
 
 
 **成功运行的截图:**   
-<img src="https://raw.githubusercontent.com/lx1169732264/Images/master/zdm%E6%88%90%E5%8A%9F%E8%BF%90%E8%A1%8C%E6%88%AA%E5%9B%BE.png" width = "700" height = "400" alt="图片名称" align=center />
+<img src="https://raw.githubusercontent.com/lx1169732264/Images/master/zdm%E6%88%90%E5%8A%9F%E8%BF%90%E8%A1%8C%E6%88%AA%E5%9B%BE.png" width = "70%" height = "70%" align=center />
 
 
 
-<img src="https://raw.githubusercontent.com/lx1169732264/Images/master/zdm%E9%82%AE%E7%AE%B1%E6%88%AA%E5%9B%BE.png" width = "700" height = "400" alt="图片名称" align=center />
+<img src="https://raw.githubusercontent.com/lx1169732264/Images/master/zdm%E9%82%AE%E7%AE%B1%E6%88%AA%E5%9B%BE.png" width = "70%" height = "70%" align=center />
 
 * [我自己也fork了一份](https://github.com/PhantomStrikers/zdm),每天都在自动运行的,可以通过这个项目的actions运行记录判断这个项目是否还能work
+
+### database.db文件的缓存机制
+`./.github/workflows/zdm_crawler.yml`添加了缓存机制, 当`database.db`数据库中新增行数超过`COMMIT_THRESHOLD`提交阈值后, 就会对该文件自动生成提交记录   
+如果你过滤条件很宽松, 推送数据频繁, `COMMIT_THRESHOLD`就可以适当调大一点, 反之就小一点
+通过调整`COMMIT_THRESHOLD`可以降低提交的频率, 避免仓库过于臃肿,
+
+```yaml
+    - name: check database changes
+      id: commit_check
+      env:
+        COMMIT_THRESHOLD: 
+```
+
+另外在手动触发工作流时, 提供了'立即生成提交记录'的入口   
+<img src="https://github.com/lx1169732264/Images/blob/master/%E6%89%8B%E5%8A%A8%E5%B7%A5%E4%BD%9C%E6%B5%81UI.png?raw=true" width = "50%" height = "50%" align=center />
+
+
 
 # 本地运行方式
 将GitHub Actions章节中的环境变量配置到本地即可
@@ -69,6 +97,7 @@
 
 | 日期         | 说明                                                                                                            |
 |------------|---------------------------------------------------------------------------------------------------------------|
+| 2026/01/25 | 新增环境变量`COMMIT_THRESHOLD`,避免频繁生成提交记录                                                                           |
 | 2025/10/25 | 1.添加参数隐藏Selenium自动化特征 2.重试接口会大幅增加间隔时间  3.调低了环境变量`maxPageSize`最大翻页数量  4.删除环境变量`cookie`,最近检测变严格了,固定的cookie是走不通的 |
 | 2025/08/28 | 处理超时异常                                                                                                        |
 | 2025/08/19 | 1.增加cookie自动刷新机制; 2.调用接口支持重试                                                                                  |
