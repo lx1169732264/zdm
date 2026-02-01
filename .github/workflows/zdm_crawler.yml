@@ -44,6 +44,12 @@ jobs:
         restore-keys: ${{ runner.os }}-database_old-
     - name: database cache copy
       run: |
+        if [ -f database.db ]; then
+          LAST_COUNT=$(sqlite3 database.db "SELECT COUNT(*) FROM ZDM;")
+        else
+          LAST_COUNT=0
+        fi
+        echo "last_count=$LAST_COUNT" >> $GITHUB_OUTPUT
         if [ -f database_old.db ]; then
           cp database_old.db database.db
         fi
@@ -82,11 +88,7 @@ jobs:
         # 提交阈值,0代表每次运行都会生成commit记录
         COMMIT_THRESHOLD: 50
       run: |
-        if [ -f database_old.db ]; then
-          LAST_COUNT=$(sqlite3 database_old.db "SELECT COUNT(*) FROM ZDM;")
-        else
-          LAST_COUNT=0
-        fi
+        LAST_COUNT=${{ steps.db_copy.outputs.last_count }}
         CURRENT_COUNT=$(sqlite3 database.db "SELECT COUNT(*) FROM ZDM;")
         NEW_ROWS=$((CURRENT_COUNT - LAST_COUNT))
         echo "Last count: $LAST_COUNT , Current count: $CURRENT_COUNT , New rows: $NEW_ROWS"
