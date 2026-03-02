@@ -1,9 +1,9 @@
 name: zdm_crawler
 
-on:
+于:
   #将下面两行代码取消注释
-  #schedule:
-    #- cron: "0/15 * * * *"
+  schedule:
+    - cron: "0/15 * * * *"
   workflow_dispatch:
     inputs:
       # 这个是手动触发工作流界面上的选项, 选择True时,即使未满足COMMIT_THRESHOLD提交阈值,也会生成提交记录
@@ -61,13 +61,13 @@ jobs:
     - name: main logic
       env:
         #爬取数据时的最大翻页数量
-        maxPageSize: 10
+        maxPageSize: 20
         # 点值的数量>minVoted,才会被推送,填0为都推送
-        minVoted: 10
+        minVoted: 5
         # 评论的数量>minComments,才会被推送,填0为都推送
         minComments: 2
         # 优惠信息数量>MIN_PUSH_SIZE就会发邮件,否则积累到下一次触发任务再决定是否推送. 不建议填太小的数字,避免邮件太多了
-        MIN_PUSH_SIZE: 20
+        MIN_PUSH_SIZE: 5
         # 邮箱的smtp服务器地址(示例给出的是qq邮箱的配置,非qq邮箱需要进行修改)
         emailHost: smtp.qq.com
         # 邮箱smtp服务端口
