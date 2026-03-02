@@ -1,14 +1,22 @@
 package lx.utils;
 
-import lx.model.Crawlable;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomUtils;
+
+import lx.model.Crawlable;
 
 import static lx.utils.Const.USER_AGENTS;
 
@@ -74,5 +82,19 @@ public class Utils {
 
     public static String ramdomUserAgent() {
         return USER_AGENTS.get(RandomUtils.nextInt(0, USER_AGENTS.size()));
+    }
+
+    public static void netWorkTest(String domain, Integer port) {
+        try {
+            System.out.println("正在检测网络连通性...");
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(domain, port), 10000);
+                System.out.println("网络连通性检测结果: 成功");
+            }
+        } catch (IOException e) {
+            System.out.println("网络连通性检测异常: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("接口调用失败,程序终止");
+        }
     }
 }

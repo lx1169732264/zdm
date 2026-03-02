@@ -30,7 +30,6 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
-import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.JavascriptExecutor;
@@ -302,7 +301,7 @@ public class ZdmCrawler {
             // 排除自动化收集
             options.setExperimentalOption("excludeSwitches", new String[]{"enable-automation", "load-extension"});
             options.setExperimentalOption("useAutomationExtension", false);
-            options.setPageLoadTimeout(Duration.ofSeconds(60));
+            options.setPageLoadTimeout(Duration.ofSeconds(20));
             driver = new ChromeDriver(options);
             // 移除webdriver属性
             ((JavascriptExecutor) driver).executeScript(
@@ -319,6 +318,7 @@ public class ZdmCrawler {
         if (!CollectionUtil.isEmpty(cookies))
             return cookies;
 
+        Utils.netWorkTest(ZDM_DOMAIN, 443);
         driver.get(ZDM_URL.get(0) + "1");
         //WebDriver#get方法是异步的, 这里需要等待页面加载完毕
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
