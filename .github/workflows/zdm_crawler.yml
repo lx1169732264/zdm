@@ -25,14 +25,10 @@ jobs:
         cache: maven
     # 安装Chrome和 ChromeDriver
     - name: Setup Chrome
-      uses: browser-actions/setup-chrome@v1
-    - name: Install ChromeDriver
-      run: |
-        CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
-        wget -O chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION/linux64/chromedriver-linux64.zip"
-        unzip chromedriver.zip
-        sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
-        sudo chmod +x /usr/local/bin/chromedriver
+      uses: browser-actions/setup-chrome@v2
+      with:
+        chrome-version: 145
+        install-chromedriver: true
     # 将上次运行的缓存文件覆盖到本地
     - name: database cache restore
       uses: actions/cache@v4
@@ -43,6 +39,7 @@ jobs:
         # 兜底机制: 匹配符合这个前缀的最新缓存
         restore-keys: ${{ runner.os }}-database_old-
     - name: database cache copy
+      id: db_copy
       run: |
         if [ -f database.db ]; then
           LAST_COUNT=$(sqlite3 database.db "SELECT COUNT(*) FROM ZDM;")
