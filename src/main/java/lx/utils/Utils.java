@@ -80,8 +80,11 @@ public class Utils {
         return number;
     }
 
-    public static String ramdomUserAgent() {
-        return USER_AGENTS.get(RandomUtils.nextInt(0, USER_AGENTS.size()));
+    /** 每次运行固定一个UA: w_tsfp等风控cookie是在浏览器里按UA指纹生成的, HTTP请求再用随机UA会前后不一致 */
+    private static final String USER_AGENT = USER_AGENTS.get(RandomUtils.nextInt(0, USER_AGENTS.size()));
+
+    public static String userAgent() {
+        return USER_AGENT;
     }
 
     public static void netWorkTest(String domain, Integer port) {

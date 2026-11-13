@@ -15,6 +15,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 正常情况下一次运行1~2分钟, 这里兜底防止卡死占用runner
+    timeout-minutes: 10
     steps:
     - uses: actions/checkout@v3
     - name: Set up JDK
@@ -23,12 +25,11 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
         cache: maven
-    # 安装Chrome和 ChromeDriver
+    # 安装Chrome和 ChromeDriver (setup-chrome 会自动安装与 Chrome 匹配的 chromedriver)
     - name: Setup Chrome
       uses: browser-actions/setup-chrome@v2
       with:
         chrome-version: 145
-        chromedriver-version: 145
         install-chromedriver: true
     - name: Update PATH
       run: |

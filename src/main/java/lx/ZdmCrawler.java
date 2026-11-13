@@ -50,6 +50,7 @@ import cn.hutool.http.ContentType;
 import cn.hutool.http.Header;
 import cn.hutool.http.HttpException;
 import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
 import lx.mapper.ZdmMapper;
 import lx.model.Zdm;
@@ -59,6 +60,20 @@ import lx.utils.Utils;
 import static lx.utils.Const.*;
 
 public class ZdmCrawler {
+
+    /**
+     * 翻页的基础间隔(毫秒), 每翻一页再额外增加 PAGE_INTERVAL_STEP_MS, 用随机化的小间隔代替原来1秒起步的等待
+     */
+    private static final int PAGE_INTERVAL_MS = intEnv("pageIntervalMs", 500);
+    private static final int PAGE_INTERVAL_STEP_MS = intEnv("pageIntervalStepMs", 150);
+    /**
+     * 重试的基础等待秒数, 第n次重试等待 RETRY_DELAY_SECONDS * 2^(n-1) 秒(10s/20s/40s...), 避免一次抖动就干等好几分钟
+     */
+    private static final int RETRY_DELAY_SECONDS = intEnv("retryDelaySeconds", 10);
+    /**
+     * 等待风控cookie(w_tsfp)出现的最长时间(秒)
+     */
+    private static final int COOKIE_WAIT_SECONDS = intEnv("cookieWaitSeconds", 15);
 
     private static Collection<HttpCookie> cookies = new ArrayList<>();
     private static Date expiredDate = null;
@@ -118,7 +133,7 @@ public class ZdmCrawler {
         //从网页上获取的优惠信息
         Stream<Zdm> crawled = ZDM_URL.stream().flatMap(url -> {
             List<Zdm> zdmPage = new ArrayList<>();
-            int interval = 1000;
+            int interval = PAGE_INTERVAL_MS;
             for (int i = 1; i <= maxPageSize; i++) {
                 List<Zdm> zdmPart = processCrawl(url + i, MAX_RETRY);
                 zdmPart.forEach(zdm -> {
@@ -135,9 +150,11 @@ public class ZdmCrawler {
                 zdmPage.addAll(zdmPart);
 
                 System.out.println("第" + i + "页数据获取成功, 当前页数据条数" + zdmPart.size());
-                //翻页的间隔时间(毫秒),页数越多间隔时间越长,其实太靠后的信息基本上是不值的,建议maxPageSize配小一点
-                ThreadUtil.sleep(ThreadLocalRandom.current().nextInt(interval, interval + 1000));
-                interval += i * 50;
+                //翻页的间隔时间(毫秒),页数越多间隔时间越长; 最后一页不再等待
+                if (i < maxPageSize) {
+                    ThreadUtil.sleep(ThreadLocalRandom.current().nextInt(interval, interval + 300));
+                    interval += PAGE_INTERVAL_STEP_MS;
+                }
             }
             return zdmPage.stream();
         });
@@ -156,23 +173,34 @@ public class ZdmCrawler {
         try {
             HttpRequest request = HttpUtil.createGet(url)
                     .cookie(buildCookies())
-                    .header(Header.USER_AGENT, Utils.ramdomUserAgent())
+                    .header(Header.USER_AGENT, Utils.userAgent())
                     .header(Header.REFERER, url)
                     .header(Header.ACCEPT, "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
                     .header(Header.ACCEPT_LANGUAGE, "zh-CN,zh;q=0.9,en;q=0.8")
                     .header("X-Requested-With", "XMLHttpRequest")
                     .header(Header.CONNECTION, "keep-alive");
 
-            String s = request.execute().body();
+            HttpResponse response = request.execute();
+            String s = response.body();
+            //风控拦截时会返回202+一段验证页HTML, 直接按JSON解析会抛异常, 这里打印状态码方便排查
+            if (s == null || !s.trim().startsWith("[")) {
+                System.out.println("接口返回内容异常, status=" + response.getStatus()
+                        + ", 内容前缀:" + StringUtils.abbreviate(s, 200));
+                throw new JSONException("接口返回的不是JSON数组");
+            }
             return JSONObject.parseArray(s, Zdm.class);
         } catch (IORuntimeException | HttpException | JSONException | TimeoutException |
                  org.openqa.selenium.TimeoutException e) {
             //尝试重新获取cookie并重试接口, 重试次数耗尽则结束任务
             if (retry > 0) {
-                //一般是接口调用太频繁跳验证码, 或者什么值得买的服务器重启宕机 等问题会引发重试, 重试的间隔时间会以分钟起步进行赋值
-                int minutes = (MAX_RETRY - retry + 1);
-                System.out.println("接口调用失败,等待" + minutes + "分钟后进行重试,剩余重试次数:" + retry);
-                ThreadUtil.sleep((long) minutes * 60 * 1000);
+                //一般是接口调用太频繁跳验证码, 或者什么值得买的服务器重启宕机 等问题会引发重试
+                //间隔按 10s/20s/40s 递增(可通过 retryDelaySeconds 调整), 足够覆盖风控抖动, 又不会像分钟级等待那样拖慢整次运行
+                int attempt = MAX_RETRY - retry + 1;
+                long delayMs = RETRY_DELAY_SECONDS * 1000L * (1L << (attempt - 1));
+                delayMs += ThreadLocalRandom.current().nextLong(0, 1000);
+                System.out.println("接口调用失败(" + e.getClass().getSimpleName() + "), " + (delayMs / 1000)
+                        + "秒后重试,剩余重试次数:" + retry);
+                ThreadUtil.sleep(delayMs);
                 clearCookie();
                 return processCrawl(url, retry - 1);
             }
@@ -281,7 +309,7 @@ public class ZdmCrawler {
         return true;
     }
 
-    private static Collection<HttpCookie> buildCookies() throws TimeoutException {
+    private static synchronized Collection<HttpCookie> buildCookies() throws TimeoutException {
         if (driver == null) {
             /**
              * GitActions运行时, 已通过工作流配置好了ChromeDriver的路径
@@ -297,7 +325,7 @@ public class ZdmCrawler {
             options.addArguments("--disable-extensions");
             options.addArguments("--disable-plugins");
             options.addArguments("--disable-images");
-            options.addArguments("--user-agent=" + Utils.ramdomUserAgent());
+            options.addArguments("--user-agent=" + Utils.userAgent());
             // 排除自动化收集
             options.setExperimentalOption("excludeSwitches", new String[]{"enable-automation", "load-extension"});
             options.setExperimentalOption("useAutomationExtension", false);
@@ -319,22 +347,56 @@ public class ZdmCrawler {
             return cookies;
 
         Utils.netWorkTest(ZDM_DOMAIN, 443);
+        long start = System.currentTimeMillis();
         driver.get(ZDM_URL.get(0) + "1");
         //WebDriver#get方法是异步的, 这里需要等待页面加载完毕
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.jsReturnsValue("return document.readyState === 'complete'"));
+
+        //w_tsfp是页面上的probe.js动态写入的, 可能在readyState变为complete之后才出现.
+        //原逻辑在这里直接读cookie, 经常读不到w_tsfp, 接口就会返回202验证页, 然后按分钟级重试, 单次运行白白多花好几分钟
+        Cookie wTsfp = waitForCookie("w_tsfp", COOKIE_WAIT_SECONDS);
+        if (wTsfp == null) {
+            System.out.println("首次加载未拿到w_tsfp, 刷新页面后重试...");
+            driver.navigate().refresh();
+            wait.until(ExpectedConditions.jsReturnsValue("return document.readyState === 'complete'"));
+            wTsfp = waitForCookie("w_tsfp", COOKIE_WAIT_SECONDS);
+        }
+        System.out.println("cookie获取完成, 耗时" + (System.currentTimeMillis() - start) + "ms, w_tsfp=" + (wTsfp != null));
 
         cookies = new ArrayList<>();
         cookies.add(new HttpCookie("x-waf-captcha-referer", ""));
         Cookie ckguid = driver.manage().getCookieNamed("__ckguid");
         if (ckguid != null)
             cookies.add(new HttpCookie("__ckguid", ckguid.getValue()));
-        Cookie w_tsfp = driver.manage().getCookieNamed("w_tsfp");
-        if (w_tsfp != null) {
-            cookies.add(new HttpCookie("w_tsfp", w_tsfp.getValue()));
-            expiredDate = w_tsfp.getExpiry();
+        if (wTsfp != null) {
+            cookies.add(new HttpCookie("w_tsfp", wTsfp.getValue()));
+            expiredDate = wTsfp.getExpiry();
         }
         return cookies;
+    }
+
+    /**
+     * 轮询等待指定cookie出现, 超时返回null
+     */
+    private static Cookie waitForCookie(String name, int timeoutSeconds) {
+        long deadline = System.currentTimeMillis() + timeoutSeconds * 1000L;
+        while (true) {
+            Cookie cookie = driver.manage().getCookieNamed(name);
+            if (cookie != null)
+                return cookie;
+            if (System.currentTimeMillis() >= deadline)
+                return null;
+            ThreadUtil.sleep(200);
+        }
+    }
+
+    private static int intEnv(String name, int defaultValue) {
+        try {
+            return Integer.parseInt(System.getenv().getOrDefault(name, String.valueOf(defaultValue)).trim());
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
 
     private static void clearCookie() {
